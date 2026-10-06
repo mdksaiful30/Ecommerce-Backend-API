@@ -19,11 +19,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'state',
     'pincode',
     'country',
+    'is_default',
 ])]
 class Address extends Model
 {
     /** @use HasFactory<\Database\Factories\AddressFactory> */
     use HasFactory;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_default' => 'boolean',
+        ];
+    }
 
     /**
      * Get the user that owns the address.

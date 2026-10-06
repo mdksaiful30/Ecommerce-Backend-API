@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryImageController;
@@ -25,7 +26,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
 
-    Route::get('/addresses', [AuthController::class, 'addresses']);
+    // User addresses
+    Route::get('/addresses', [AddressController::class, 'index']);
+    Route::post('/addresses', [AddressController::class, 'store']);
+    Route::get('/addresses/{address}', [AddressController::class, 'show']);
+    Route::put('/addresses/{address}', [AddressController::class, 'update']);
+    Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);
+    Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault']);
+
     Route::apiResource('categories', \App\Http\Controllers\CategoryController::class)->except(['index', 'show']);
     Route::apiResource('products', \App\Http\Controllers\ProductController::class)->except(['index', 'show']);
 

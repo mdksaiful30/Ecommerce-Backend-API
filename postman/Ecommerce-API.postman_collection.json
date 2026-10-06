@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Ecommerce API",
-    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n5. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n6. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n\nRequired header on every request: `Accept: application/json`.",
+    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Addresses / Create Address** to create a sample address for the customer (saves `address_id`).\n5. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n6. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n7. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n\nRequired header on every request: `Accept: application/json`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,7 +11,8 @@
     { "key": "category_id", "value": "1" },
     { "key": "product_id", "value": "11" },
     { "key": "image_id", "value": "1" },
-    { "key": "category_image_id", "value": "1" }
+    { "key": "category_image_id", "value": "1" },
+    { "key": "address_id", "value": "1" }
   ],
   "item": [
     {
@@ -264,6 +265,135 @@
               "path": ["api", "logout-all"]
             },
             "description": "Revokes every token for the authenticated user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Addresses",
+      "item": [
+        {
+          "name": "Create Address",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('address_id', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"home\",\n  \"full_name\": \"John Doe\",\n  \"phone\": \"+1234567890\",\n  \"address_line1\": \"123 Main Street\",\n  \"address_line2\": \"Apt 4B\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"pincode\": \"10001\",\n  \"country\": \"USA\",\n  \"is_default\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "addresses"]
+            },
+            "description": "Authenticated user only. Creates a new address. Saves `address_id` automatically."
+          }
+        },
+        {
+          "name": "Get All Addresses",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "addresses"]
+            },
+            "description": "Authenticated user only. Lists all addresses for the logged-in user, default first."
+          }
+        },
+        {
+          "name": "Get Address Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/addresses/{{address_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "addresses", "{{address_id}}"]
+            },
+            "description": "Authenticated user only. Shows a single address. Returns 404 if the address belongs to another user."
+          }
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_line2\": \"Suite 12\",\n  \"city\": \"Brooklyn\",\n  \"is_default\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/addresses/{{address_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "addresses", "{{address_id}}"]
+            },
+            "description": "Authenticated user only. Updates the address. Returns 404 if the address belongs to another user."
+          }
+        },
+        {
+          "name": "Set Default Address",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/addresses/{{address_id}}/default",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "addresses", "{{address_id}}", "default"]
+            },
+            "description": "Authenticated user only. Marks the address as default and clears default from all other addresses."
+          }
+        },
+        {
+          "name": "Delete Address",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/addresses/{{address_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "addresses", "{{address_id}}"]
+            },
+            "description": "Authenticated user only. Deletes the address. Returns 404 if the address belongs to another user."
           }
         }
       ]
