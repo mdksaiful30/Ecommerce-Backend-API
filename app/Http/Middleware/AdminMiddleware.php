@@ -19,7 +19,7 @@ class AdminMiddleware
 
         if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated.',
+                'message' => 'Unauthorized. Please log in.',
             ], Response::HTTP_UNAUTHORIZED);
         }
 

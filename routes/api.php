@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CategoryImageController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +24,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
+
+    Route::get('/addresses', [AuthController::class, 'addresses']);
+    Route::apiResource('categories', \App\Http\Controllers\CategoryController::class)->except(['index', 'show']);
+    Route::apiResource('products', \App\Http\Controllers\ProductController::class)->except(['index', 'show']);
+
 });
 
 /*
@@ -56,4 +63,16 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::patch('product/{product}', [ProductController::class, 'update']);
     Route::delete('product/{product}', [ProductController::class, 'destroy']);
     Route::delete('products/{product}', [ProductController::class, 'destroy']);
+
+    // Product images (upload / manage)
+    Route::get('products/{product}/images', [ProductImageController::class, 'index']);
+    Route::post('products/{product}/images', [ProductImageController::class, 'store']);
+    Route::post('products/{product}/images/{image}/primary', [ProductImageController::class, 'setPrimary']);
+    Route::delete('products/{product}/images/{image}', [ProductImageController::class, 'destroy']);
+
+    // Category images (upload / manage)
+    Route::get('categories/{category}/images', [CategoryImageController::class, 'index']);
+    Route::post('categories/{category}/images', [CategoryImageController::class, 'store']);
+    Route::post('categories/{category}/images/{image}/primary', [CategoryImageController::class, 'setPrimary']);
+    Route::delete('categories/{category}/images/{image}', [CategoryImageController::class, 'destroy']);
 });

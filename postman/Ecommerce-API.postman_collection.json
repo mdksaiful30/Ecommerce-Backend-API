@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Ecommerce API",
-    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n\nRequired header on every request: `Accept: application/json`.",
+    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n5. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n6. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n\nRequired header on every request: `Accept: application/json`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,7 +9,9 @@
     { "key": "admin_token", "value": "" },
     { "key": "customer_token", "value": "" },
     { "key": "category_id", "value": "1" },
-    { "key": "product_id", "value": "1" }
+    { "key": "product_id", "value": "11" },
+    { "key": "image_id", "value": "1" },
+    { "key": "category_image_id", "value": "1" }
   ],
   "item": [
     {
@@ -312,44 +314,44 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Electronics\",\n  \"description\": \"All electronics and gadgets\",\n  \"image\": \"categories/electronics.jpg\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Electronics", "type": "text" },
+                { "key": "description", "value": "All electronics and gadgets", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/categories",
               "host": ["{{baseUrl}}"],
               "path": ["api", "categories"]
             },
-            "description": "Admin only. Saves `category_id` automatically. If run twice, change the name to avoid a duplicate slug."
+            "description": "Admin only. Saves `category_id` automatically. If run twice, change the name to avoid a duplicate slug. Uses multipart/form-data so `image` accepts an actual file upload (string path is also accepted)."
           }
         },
         {
           "name": "Update Category (Admin)",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Electronics & Gadgets\",\n  \"description\": \"Updated description\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Electronics & Gadgets", "type": "text" },
+                { "key": "description", "value": "Updated description", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/categories/{{category_id}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "categories", "{{category_id}}"]
             },
-            "description": "Admin only. Updates a category + auto-updates the slug."
+            "description": "Admin only. Updates a category + auto-updates the slug. Uses multipart/form-data so `image` accepts an actual file upload; leave empty to keep the existing image."
           }
         },
         {
@@ -414,22 +416,27 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"category_id\": {{category_id}},\n  \"name\": \"Wireless Mouse\",\n  \"description\": \"Ergonomic wireless mouse\",\n  \"price\": 29.99,\n  \"offer_price\": 24.99,\n  \"image\": \"products/mouse.jpg\",\n  \"stock\": 50,\n  \"is_featured\": true\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category_id", "value": "{{category_id}}", "type": "text" },
+                { "key": "name", "value": "Wireless Mouse", "type": "text" },
+                { "key": "description", "value": "Ergonomic wireless mouse", "type": "text" },
+                { "key": "price", "value": "29.99", "type": "text" },
+                { "key": "offer_price", "value": "24.99", "type": "text" },
+                { "key": "stock", "value": "50", "type": "text" },
+                { "key": "is_featured", "value": "true", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/product",
               "host": ["{{baseUrl}}"],
               "path": ["api", "product"]
             },
-            "description": "Admin only. Saves `product_id` automatically. If run twice, change the name to avoid a duplicate slug."
+            "description": "Admin only. Saves `product_id` automatically. If run twice, change the name to avoid a duplicate slug. Uses multipart/form-data so the `image` field accepts an actual file upload (string path is also accepted)."
           }
         },
         {
@@ -501,22 +508,23 @@
           "name": "Update Product (Admin)",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"price\": 24.99,\n  \"stock\": 40,\n  \"is_featured\": false\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "price", "value": "24.99", "type": "text" },
+                { "key": "stock", "value": "40", "type": "text" },
+                { "key": "is_featured", "value": "false", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/product/{{product_id}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "product", "{{product_id}}"]
             },
-            "description": "Admin only. Expected: 200 OK."
+            "description": "Admin only. Expected: 200 OK. Uses multipart/form-data so `image` accepts an actual file upload; leave it empty to keep the existing image."
           }
         },
         {
@@ -589,6 +597,376 @@
               "path": ["api", "product", "{{product_id}}"]
             },
             "description": "Role check: customer must receive 403 Forbidden."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category Images",
+      "item": [
+        {
+          "name": "Upload Category Image (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length && json[0].id) { pm.collectionVariables.set('category_image_id', json[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "images[]", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images"]
+            },
+            "description": "Admin only. Multipart upload. Select one or more files for `images[]`. The first image becomes primary and syncs `categories.image`. Saves `category_image_id` automatically."
+          }
+        },
+        {
+          "name": "Upload Single Category Image (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length && json[0].id) { pm.collectionVariables.set('category_image_id', json[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images"]
+            },
+            "description": "Admin only. Single file upload using the `image` field. Saves `category_image_id` automatically."
+          }
+        },
+        {
+          "name": "List Category Images (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images"]
+            },
+            "description": "Admin only. Returns every image for the category, primary first, each with a resolved `url`."
+          }
+        },
+        {
+          "name": "Set Primary Category Image (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images/{{category_image_id}}/primary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images", "{{category_image_id}}", "primary"]
+            },
+            "description": "Admin only. Marks the given image as primary and syncs `categories.image`."
+          }
+        },
+        {
+          "name": "Delete Category Image (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images/{{category_image_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images", "{{category_image_id}}"]
+            },
+            "description": "Admin only. Deletes the image record and its stored file. If it was primary, the next image is promoted."
+          }
+        },
+        {
+          "name": "Upload Category Image (Customer - expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images"]
+            },
+            "description": "Role check: a customer must receive 403 Forbidden."
+          }
+        },
+        {
+          "name": "Upload Category Image (Guest - expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{category_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{category_id}}", "images"]
+            },
+            "description": "Role check: no token must receive 401 Unauthorized."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Images",
+      "item": [
+        {
+          "name": "Upload Product Image (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length && json[0].id) { pm.collectionVariables.set('image_id', json[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "images[]", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images"]
+            },
+            "description": "Admin only. Multipart upload. Select one or more files for `images[]`. The first image becomes the primary image and syncs `products.image`. Saves `image_id` automatically."
+          }
+        },
+        {
+          "name": "Upload Single Image (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length && json[0].id) { pm.collectionVariables.set('image_id', json[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images"]
+            },
+            "description": "Admin only. Single file upload using the `image` field. Saves `image_id` automatically."
+          }
+        },
+        {
+          "name": "List Product Images (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images"]
+            },
+            "description": "Admin only. Returns every image for the product, primary first, each with a resolved `url`."
+          }
+        },
+        {
+          "name": "Set Primary Image (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images/{{image_id}}/primary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images", "{{image_id}}", "primary"]
+            },
+            "description": "Admin only. Marks the given image as primary and syncs `products.image`."
+          }
+        },
+        {
+          "name": "Delete Product Image (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images/{{image_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images", "{{image_id}}"]
+            },
+            "description": "Admin only. Deletes the image record and its stored file. If it was primary, the next image is promoted."
+          }
+        },
+        {
+          "name": "Upload Image (Customer - expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images"]
+            },
+            "description": "Role check: a customer must receive 403 Forbidden."
+          }
+        },
+        {
+          "name": "Upload Image (Guest - expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{product_id}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{product_id}}", "images"]
+            },
+            "description": "Role check: no token must receive 401 Unauthorized."
           }
         }
       ]
