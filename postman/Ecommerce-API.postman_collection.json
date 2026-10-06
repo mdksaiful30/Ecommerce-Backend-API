@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Ecommerce API",
-    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Addresses / Create Address** to create a sample address for the customer (saves `address_id`).\n5. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n6. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n7. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n\nRequired header on every request: `Accept: application/json`.",
+    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Addresses / Create Address** to create a sample address for the customer (saves `address_id`).\n5. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n6. Send **Cart / Add to Cart** to add the created product to the customer's cart (saves `cart_item_id`).\n7. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n8. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n\nRequired header on every request: `Accept: application/json`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,7 +12,8 @@
     { "key": "product_id", "value": "11" },
     { "key": "image_id", "value": "1" },
     { "key": "category_image_id", "value": "1" },
-    { "key": "address_id", "value": "1" }
+    { "key": "address_id", "value": "1" },
+    { "key": "cart_item_id", "value": "1" }
   ],
   "item": [
     {
@@ -394,6 +395,135 @@
               "path": ["api", "addresses", "{{address_id}}"]
             },
             "description": "Authenticated user only. Deletes the address. Returns 404 if the address belongs to another user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Add to Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (json.item && json.item.id) { pm.collectionVariables.set('cart_item_id', json.item.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Authenticated user only. Adds a product to the cart or increases quantity if already present. Saves `cart_item_id` automatically."
+          }
+        },
+        {
+          "name": "Get Cart Items",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Authenticated user only. Returns all cart items with automatically calculated totals."
+          }
+        },
+        {
+          "name": "Get Cart Totals",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/totals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "totals"]
+            },
+            "description": "Authenticated user only. Returns subtotal, discount, tax and total for the current cart."
+          }
+        },
+        {
+          "name": "Update Cart Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/{{cart_item_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "{{cart_item_id}}"]
+            },
+            "description": "Authenticated user only. Updates the quantity of a specific cart item."
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/{{cart_item_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "{{cart_item_id}}"]
+            },
+            "description": "Authenticated user only. Removes a single item from the cart."
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Authenticated user only. Removes every item from the cart."
           }
         }
       ]

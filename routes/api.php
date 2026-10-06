@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryImageController;
 use App\Http\Controllers\ProductController;
@@ -33,6 +34,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/addresses/{address}', [AddressController::class, 'update']);
     Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);
     Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault']);
+
+    // User cart
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart', [CartController::class, 'store']);
+    Route::put('/cart/{cart}', [CartController::class, 'update']);
+    Route::delete('/cart/{cart}', [CartController::class, 'destroy']);
+    Route::delete('/cart', [CartController::class, 'clear']);
+    Route::get('/cart/totals', [CartController::class, 'totals']);
 
     Route::apiResource('categories', \App\Http\Controllers\CategoryController::class)->except(['index', 'show']);
     Route::apiResource('products', \App\Http\Controllers\ProductController::class)->except(['index', 'show']);
