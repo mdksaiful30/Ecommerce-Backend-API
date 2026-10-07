@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Ecommerce API",
-    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Addresses / Create Address** to create a sample address for the customer (saves `address_id`).\n5. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n6. Send **Cart / Add to Cart** to add the created product to the customer's cart (saves `cart_item_id`).\n7. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n8. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n\nRequired header on every request: `Accept: application/json`.",
+    "description": "Ready-to-import Postman collection for the Laravel Ecommerce API.\n\n## Setup\n1. Import this collection.\n2. Import the matching environment `Ecommerce API - Local`.\n3. Send **Auth / Register Admin** and **Auth / Register Customer** first - the tokens are saved automatically.\n4. Send **Addresses / Create Address** to create a sample address for the customer (saves `address_id`).\n5. Send **Categories / Create Category (Admin)** then **Products / Create Product (Admin)** - the ids are saved automatically.\n6. Send **Cart / Add to Cart** to add the created product to the customer's cart (saves `cart_item_id`).\n7. Send **Category Images / Upload Category Image (Admin)** - pick one or more files for the `images[]` field; the first image id is saved automatically. Requires the `public` upload disk (`CATEGORY_IMAGE_DISK=public`) and `php artisan storage:link`.\n8. Send **Product Images / Upload Product Image (Admin)** - same as above, but for products (`PRODUCT_IMAGE_DISK=public`).\n9. Send **Orders / Checkout Order (from Cart)** to place an order from the cart (saves `order_id`), or **Orders / Buy Now (Direct Order)** for a single product. Then use **Orders / Get Order Details**, **Orders / Cancel Order**, and the admin requests **Orders / List All Orders (Admin)** and **Orders / Update Order Status (Admin)**.\n10. Send **Payments / Start Payment (Customer)** to create a Stripe PaymentIntent for the order (saves `payment_id` and returns `client_secret`). Confirm it either on the frontend with Stripe.js, or locally via **Payments / Confirm Payment (Test Card)** (test cards `pm_card_visa` / `pm_card_chargeDeclined`; requires `PAYMENT_ALLOW_MANUAL_CONFIRMATION=true`). Use **Payments / Sync Payment Status** to pull the latest Stripe state (webhook fallback), then **Payments / List Order Payments (Customer)**, **Payments / Get Payment (Customer)** and, as admin, **Payments / Refund Payment (Admin)**. Payments require `STRIPE_SECRET`; the **Payments / Stripe Webhook (Public)** endpoint requires `STRIPE_WEBHOOK_SECRET`.\n\nRequired header on every request: `Accept: application/json`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,7 +13,9 @@
     { "key": "image_id", "value": "1" },
     { "key": "category_image_id", "value": "1" },
     { "key": "address_id", "value": "1" },
-    { "key": "cart_item_id", "value": "1" }
+    { "key": "cart_item_id", "value": "1" },
+    { "key": "order_id", "value": "1" },
+    { "key": "payment_id", "value": "1" }
   ],
   "item": [
     {
@@ -524,6 +526,529 @@
               "path": ["api", "cart"]
             },
             "description": "Authenticated user only. Removes every item from the cart."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Checkout Order (from Cart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('order_id', json.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_id\": {{address_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "checkout"]
+            },
+            "description": "Authenticated customer only. Creates an order from every item in the cart: verifies and decrements stock, snapshots the unit price (offer_price when set), generates a unique order_number and empties the cart. Requires a non-empty cart (send Cart / Add to Cart first) and `address_id` must belong to the customer. Saves `order_id` automatically. Returns 400 with 'Your cart is empty.' when the cart is empty."
+          }
+        },
+        {
+          "name": "Buy Now (Direct Order)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('order_id', json.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"address_id\": {{address_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/direct",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "direct"]
+            },
+            "description": "Authenticated customer only. Places an order for a single product without modifying the cart. Verifies and decrements stock inside a transaction. Saves `order_id` automatically."
+          }
+        },
+        {
+          "name": "List My Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (!pm.collectionVariables.get('order_id') && json.data && json.data.length && json.data[0].id) { pm.collectionVariables.set('order_id', json.data[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?status=&per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "status", "value": "", "description": "Optional. Filter by order_status (pending, processing, delivered, cancelled)." },
+                { "key": "per_page", "value": "15", "description": "Optional. Items per page (1-100)." }
+              ]
+            },
+            "description": "Authenticated customer only. Returns a paginated list of the customer's orders with item count and status."
+          }
+        },
+        {
+          "name": "Get Order Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}"]
+            },
+            "description": "Authenticated customer only. Full order details: items with product info, shipping address and payment status. Returns 403 if the order belongs to another user."
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "cancel"]
+            },
+            "description": "Authenticated customer only. Cancels the order when its status is 'pending' and restores the reserved stock. Returns 403 for non-pending orders."
+          }
+        },
+        {
+          "name": "List All Orders (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (!pm.collectionVariables.get('order_id') && json.data && json.data.length && json.data[0].id) { pm.collectionVariables.set('order_id', json.data[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders?status=&search=&from_date=&to_date=&per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders"],
+              "query": [
+                { "key": "status", "value": "", "description": "Optional. Filter by order_status." },
+                { "key": "search", "value": "", "description": "Optional. Search by order_number, user name or email." },
+                { "key": "from_date", "value": "", "description": "Optional. YYYY-MM-DD lower bound on created_at." },
+                { "key": "to_date", "value": "", "description": "Optional. YYYY-MM-DD upper bound on created_at." },
+                { "key": "per_page", "value": "15", "description": "Optional. Items per page (1-100)." }
+              ]
+            },
+            "description": "Admin only. Returns all orders with optional status, search and date-range filters."
+          }
+        },
+        {
+          "name": "Update Order Status (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('order_id', json.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_status\": \"processing\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{order_id}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders", "{{order_id}}", "status"]
+            },
+            "description": "Admin only. Updates order_status (pending, processing, delivered, cancelled). Setting it to 'cancelled' restores product stock."
+          }
+        },
+        {
+          "name": "List My Orders (Guest - expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Auth check: no token must receive 401 Unauthorized."
+          }
+        },
+        {
+          "name": "Update Order Status (Customer - expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_status\": \"delivered\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{order_id}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders", "{{order_id}}", "status"]
+            },
+            "description": "Role check: a customer must receive 403 Forbidden from admin endpoints."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Start Payment (Customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('payment_id', json.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"card\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "payments"]
+            },
+            "description": "Authenticated customer only. Creates a Stripe PaymentIntent for the order and returns the payment record plus `client_secret` (used by Stripe.js to confirm the payment) and `publishable_key`. Requires STRIPE_SECRET to be configured. Saves `payment_id`. The payment is finalised asynchronously via the Stripe webhook."
+          }
+        },
+        {
+          "name": "List Order Payments (Customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (!pm.collectionVariables.get('payment_id') && json.data && json.data.length && json.data[0].id) { pm.collectionVariables.set('payment_id', json.data[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "payments"]
+            },
+            "description": "Authenticated customer only. Lists every payment attempt recorded for the order, newest first."
+          }
+        },
+        {
+          "name": "Get Payment (Customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/payments/{{payment_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "payments", "{{payment_id}}"]
+            },
+            "description": "Authenticated customer only. Shows a single payment belonging to the order. Returns 404 if the payment does not belong to the order."
+          }
+        },
+        {
+          "name": "Confirm Payment (Test Card)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"pm_card_visa\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/payments/{{payment_id}}/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "payments", "{{payment_id}}", "confirm"]
+            },
+            "description": "TEST-ONLY. Confirms the PaymentIntent server-side using a Stripe test PaymentMethod, so the whole gateway flow can be tested from Postman without a frontend. Only enabled when PAYMENT_ALLOW_MANUAL_CONFIRMATION=true (returns 404 otherwise). Use pm_card_visa for a successful charge (payment -> 'success', pending order -> 'processing'); use pm_card_chargeDeclined to simulate a decline (returns 502)."
+          }
+        },
+        {
+          "name": "Confirm Payment - Declined Card (expect 502)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 502', function () { pm.response.to.have.status(502); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"pm_card_chargeDeclined\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/payments/{{payment_id}}/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "payments", "{{payment_id}}", "confirm"]
+            },
+            "description": "TEST-ONLY. Failure path: confirms with the Stripe test token pm_card_chargeDeclined. Stripe rejects the charge and the API responds 502 Bad Gateway ('Unable to confirm the payment. Check the payment method token.'). Requires a fresh PaymentIntent (send Payments / Start Payment first) since an already-succeeded one cannot be declined. Other useful test tokens: pm_card_visa_chargeDeclined, pm_card_insufficient_funds."
+          }
+        },
+        {
+          "name": "Sync Payment Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{order_id}}/payments/{{payment_id}}/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{order_id}}", "payments", "{{payment_id}}", "sync"]
+            },
+            "description": "Authenticated customer only. Retrieves the latest PaymentIntent state from Stripe and applies it to the local payment (and advances a pending order). Useful as a webhook fallback and for local testing where Stripe cannot reach your machine."
+          }
+        },
+        {
+          "name": "Refund Payment (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments/{{payment_id}}/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "payments", "{{payment_id}}", "refund"]
+            },
+            "description": "Admin only. Fully refunds a successful payment through Stripe and marks it as 'refunded'. Returns 422 when the payment has not succeeded."
+          }
+        },
+        {
+          "name": "Stripe Webhook (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 400', function () { pm.expect([200, 400]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Stripe-Signature", "value": "t=0,v1=replace_with_valid_signature", "description": "Signature computed by Stripe over the raw payload using STRIPE_WEBHOOK_SECRET." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": { \"id\": \"pi_test_123\", \"object\": \"payment_intent\", \"status\": \"succeeded\" }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhooks/stripe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhooks", "stripe"]
+            },
+            "description": "Public endpoint called by Stripe. The signature is verified against STRIPE_WEBHOOK_SECRET; an invalid signature returns 400. On 'payment_intent.succeeded' the payment is marked successful and a pending order moves to 'processing'; 'payment_intent.payment_failed' marks it failed; 'charge.refunded' marks it refunded."
           }
         }
       ]

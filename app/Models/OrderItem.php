@@ -19,6 +19,19 @@ class OrderItem extends Model
     use HasFactory;
 
     /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+            'price' => 'decimal:2',
+        ];
+    }
+
+    /**
      * Get the order that owns the order item.
      */
     public function order(): BelongsTo

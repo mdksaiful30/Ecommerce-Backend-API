@@ -1,17 +1,27 @@
 <?php
 
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryImageController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+
+// Stripe webhook (verified via signature, not authenticated).
+Route::post('/webhooks/stripe', StripeWebhookController::class);
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -43,8 +53,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart', [CartController::class, 'clear']);
     Route::get('/cart/totals', [CartController::class, 'totals']);
 
+    // Customer orders
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders/checkout', [OrderController::class, 'checkout']);
+    Route::post('/orders/direct', [OrderController::class, 'direct']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
+
+    // Order payments (Stripe)
+    Route::get('/orders/{order}/payments', [PaymentController::class, 'index']);
+    Route::post('/orders/{order}/payments', [PaymentController::class, 'store']);
+    Route::get('/orders/{order}/payments/{payment}', [PaymentController::class, 'show']);
+    Route::post('/orders/{order}/payments/{payment}/sync', [PaymentController::class, 'sync']);
+    Route::post('/orders/{order}/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
+
     Route::apiResource('categories', \App\Http\Controllers\CategoryController::class)->except(['index', 'show']);
     Route::apiResource('products', \App\Http\Controllers\ProductController::class)->except(['index', 'show']);
+
+    Route::get('/stripe-test', [PaymentController::class, 'stripeTest']);
+
+// If you are using Sanctum authentication:
+Route::middleware('auth:sanctum')->post('/store-payment', [PaymentController::class, 'storePayment']);
+
+// Or for testing without authentication:
+// Route::post('/store-payment', [PaymentController::class, 'storePayment']);
 
 });
 
@@ -92,4 +124,16 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('categories/{category}/images', [CategoryImageController::class, 'store']);
     Route::post('categories/{category}/images/{image}/primary', [CategoryImageController::class, 'setPrimary']);
     Route::delete('categories/{category}/images/{image}', [CategoryImageController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin order management (role: admin)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('orders', [AdminOrderController::class, 'index']);
+    Route::patch('orders/{order}/status', [AdminOrderController::class, 'updateStatus']);
+
+    Route::post('payments/{payment}/refund', [PaymentController::class, 'refund']);
 });
